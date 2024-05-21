@@ -32,6 +32,34 @@ app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   next();
 });
+
+// กำหนดโฟลเดอร์ที่เก็บรูป
+const imageFolder = "C:\\images";
+
+// สร้าง API สำหรับดึงรูป
+app.get("/api/images", (req, res) => {
+  fs.readdir(imageFolder, (err, files) => {
+    if (err) {
+      return res.status(500).send("Unable to scan directory: " + err);
+    }
+
+    // กรองเฉพาะไฟล์ที่เป็นรูป
+    const imageFiles = files.filter((file) =>
+      /\.(jpg|jpeg|png|gif)$/i.test(file)
+    );
+
+    // สร้าง URL สำหรับรูปแต่ละรูป
+    const imageUrls = imageFiles.map(
+      (file) => `http://localhost:${port}/images/${file}`
+    );
+
+    res.json(imageUrls);
+  });
+});
+
+// เสิร์ฟรูปจากโฟลเดอร์
+app.use("/images", express.static(imageFolder));
+
 app.get("/sse", (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
