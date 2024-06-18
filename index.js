@@ -2,10 +2,12 @@ var express = require("express");
 var app = express();
 var fs = require("fs");
 var sql = require("mssql");
+const os = require("os");
 const port = 3001;
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const jsonParser = bodyParser.json();
+const moment = require("moment-timezone");
 // การกำหนดค่าการเชื่อมต่อฐานข้อมูล SQL Server
 require("./sse-server");
 const config = {
@@ -75,7 +77,7 @@ app.get("/sse", (req, res) => {
       const pool = await sql.connect(config);
       const result = await pool
         .request()
-        .query("SELECT * FROM QueueUse ORDER BY EntryDatetime DESC;");
+        .query("SELECT * FROM KMH_QUEUE ORDER BY MWhen DESC;");
       const data = result.recordset;
       sendSSE(data);
     } catch (error) {
@@ -83,33 +85,29 @@ app.get("/sse", (req, res) => {
     }
   }, 1000);
 });
-app.get("/api/queue", (req, res) => {
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
+// app.get("/api/queue", (req, res) => {
+//   res.setHeader("Content-Type", "text/event-stream");
+//   res.setHeader("Cache-Control", "no-cache");
+//   res.setHeader("Connection", "keep-alive");
 
-  const sendSSE = (data) => {
-    res.write(`data: ${JSON.stringify(data)}\n\n`);
-  };
+//   const sendSSE = (data) => {
+//     res.write(`data: ${JSON.stringify(data)}\n\n`);
+//   };
 
-  // ตัวอย่าง: ส่งข้อมูลทุก 1 วินาที
-  setInterval(async () => {
-    try {
-      const pool = await sql.connect(config);
-      const result = await pool
-        .request()
-        .query(
-          "SELECT TOP 1 * FROM QueueUse Where StatusQ = 2 ORDER BY EntryDatetime DESC;"
-        );
-      const data = result.recordset;
-      sendSSE(data);
-    } catch (error) {
-      console.error("Error fetching data from SQL Server:", error);
-    }
-  }, 1000);
-});
+//   // ตัวอย่าง: ส่งข้อมูลทุก 1 วินาที
+//   setInterval(async () => {
+//     try {
+//       const pool = await sql.connect(config);
+//       const result = await pool.request().query("SELECT  * FROM KMH_QUEUE ");
+//       const data = result.recordset;
+//       sendSSE(data);
+//     } catch (error) {
+//       console.error("Error fetching data from SQL Server:", error);
+//     }
+//   }, 1000);
+// });
 
-app.get("/api/queueuser", (req, res) => {
+app.get("/api/KMH_QUEUEr", (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -125,7 +123,7 @@ app.get("/api/queueuser", (req, res) => {
       const result = await pool
         .request()
         .query(
-          "SELECT TOP 1 * FROM QueueUse Where StatusQ = 2 ORDER BY EntryDatetime DESC"
+          "SELECT TOP 1 * FROM KMH_QUEUE Where PresStatus = 2 ORDER BY MWhen DESC"
         );
       const data = result.recordset;
       sendSSE(data);
@@ -136,7 +134,7 @@ app.get("/api/queueuser", (req, res) => {
 });
 const TIMEOUT_DURATION = 30000;
 
-app.get("/api/queueuserWait", (req, res) => {
+app.get("/api/KMH_QUEUErWait", (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -151,7 +149,7 @@ app.get("/api/queueuserWait", (req, res) => {
       const result = await pool
         .request()
         .query(
-          "SELECT TOP 10 * FROM QueueUse Where StatusQ = 1 ORDER BY EntryDatetime DESC"
+          "SELECT TOP 10 * FROM KMH_QUEUE Where PresStatus = 1 ORDER BY MWhen DESC"
         );
       const data = result.recordset;
       sendSSE(data);
@@ -203,7 +201,7 @@ app.get("/api/queueFinanceRoom", (req, res) => {
       const result = await pool
         .request()
         .query(
-          "SELECT TOP 1 * FROM QueueUse Where StatusQ = 4 ORDER BY EntryDatetime DESC"
+          "SELECT TOP 1 * FROM KMH_QUEUE Where PresStatus = 4 ORDER BY MWhen DESC"
         );
       const data = result.recordset;
       sendSSE(data);
@@ -229,7 +227,7 @@ app.get("/api/queueFinance", (req, res) => {
       const result = await pool
         .request()
         .query(
-          "SELECT TOP 1 * FROM QueueUse Where StatusQ = 4 ORDER BY EntryDatetime DESC;"
+          "SELECT TOP 1 * FROM KMH_QUEUE Where PresStatus = 4 ORDER BY MWhen DESC;"
         );
       const data = result.recordset;
       sendSSE(data);
@@ -238,7 +236,7 @@ app.get("/api/queueFinance", (req, res) => {
     }
   }, 5000);
 });
-app.get("/api/queueuserWaitFinance", (req, res) => {
+app.get("/api/KMH_QUEUErWaitFinance", (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -253,7 +251,7 @@ app.get("/api/queueuserWaitFinance", (req, res) => {
       const result = await pool
         .request()
         .query(
-          "SELECT TOP 10 * FROM QueueUse Where StatusQ = 3 ORDER BY EntryDatetime DESC"
+          "SELECT TOP 10 * FROM KMH_QUEUE Where PresStatus = 3 ORDER BY MWhen DESC"
         );
       const data = result.recordset;
       sendSSE(data);
@@ -305,7 +303,7 @@ app.get("/api/queueDrugRoom", (req, res) => {
       const result = await pool
         .request()
         .query(
-          "SELECT TOP 1 * FROM QueueUse Where StatusQ = 6 ORDER BY EntryDatetime DESC"
+          "SELECT TOP 1 * FROM KMH_QUEUE Where PresStatus = 6 ORDER BY MWhen DESC"
         );
       const data = result.recordset;
       sendSSE(data);
@@ -330,7 +328,7 @@ app.get("/api/queueDrug", (req, res) => {
       const result = await pool
         .request()
         .query(
-          "SELECT TOP 1 * FROM QueueUse Where StatusQ = 6 ORDER BY EntryDatetime DESC;"
+          "SELECT TOP 1 * FROM KMH_QUEUE Where PresStatus = 6 ORDER BY MWhen DESC;"
         );
       const data = result.recordset;
       sendSSE(data);
@@ -340,7 +338,7 @@ app.get("/api/queueDrug", (req, res) => {
   }, 1000);
 });
 
-app.get("/api/queueuserWaitDrug", (req, res) => {
+app.get("/api/KMH_QUEUErWaitDrug", (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -355,7 +353,7 @@ app.get("/api/queueuserWaitDrug", (req, res) => {
       const result = await pool
         .request()
         .query(
-          "SELECT TOP 10 * FROM QueueUse Where StatusQ = 5 ORDER BY EntryDatetime DESC"
+          "SELECT TOP 10 * FROM KMH_QUEUE Where PresStatus = 5 ORDER BY MWhen DESC"
         );
       const data = result.recordset;
       sendSSE(data);
@@ -390,14 +388,14 @@ app.get("/api/queueuserWaitDrug", (req, res) => {
   // เริ่มต้นการรอข้อมูลจาก SQL Server
   fetchDataWithTimeout();
 });
-// สร้างเส้นทาง API เพื่ออ่านข้อมูลจากตาราง QueueUser
-// app.get("/api/queueuser", async (req, res) => {
+// สร้างเส้นทาง API เพื่ออ่านข้อมูลจากตาราง KMH_QUEUEr
+// app.get("/api/KMH_QUEUEr", async (req, res) => {
 //   try {
 //     // เชื่อมต่อกับฐานข้อมูล
 //     await sql.connect(config);
 
 //     // ทำคำสั่ง SQL เพื่อดึงข้อมูล
-//     const result = await sql.query`SELECT * FROM QueueUse ORDER BY EntryDatetime DESC`;
+//     const result = await sql.query`SELECT * FROM KMH_QUEUE ORDER BY MWhen DESC`;
 //     // ปิดการเชื่อมต่อกับฐานข้อมูล
 //     await sql.close();
 
@@ -408,22 +406,22 @@ app.get("/api/queueuserWaitDrug", (req, res) => {
 //   }
 // });
 
-app.put("/api/updatestatus/:vn", async (req, res) => {
+app.put("/api/updatestatus/:VisitNumber", async (req, res) => {
   try {
     let pool = await sql.connect(config);
-    const { vn } = req.params;
-    const { room, StatusQ } = req.body;
+    const { VisitNumber } = req.params;
+    const { room, PresStatus } = req.body;
     console.log(room);
     const Time = Date.now();
     console.log(Time);
     let result = await pool
       .request()
-      .input("VN", sql.VarChar(3), vn)
+      .input("VisitNumber", sql.VarChar(3), VisitNumber)
       .input("Rooms", sql.NVarChar(100), room)
-      .input("StatusQ", sql.INT, StatusQ)
+      .input("PresStatus", sql.VarChar, PresStatus)
       .input("Time", sql.DateTime, new Date(Time))
-      .query`UPDATE QueueUser SET StatusQ = @StatusQ, Rooms = @Rooms, Time = @Time WHERE VN = @VN`;
-    res.send("StatusQ updated successfully");
+      .query`UPDATE KMH_QUEUEr SET PresStatus = @PresStatus, Rooms = @Rooms, Time = @Time WHERE VisitNumber = @VisitNumber`;
+    res.send("PresStatus updated successfully");
   } catch (err) {
     console.error("Error:", err.message);
     res.status(500).send("Internal Server Error");
@@ -436,7 +434,7 @@ app.get("/api/queueTest", async (req, res) => {
     const result = await pool
       .request()
       .query(
-        "SELECT TOP 1 * FROM QueueUse Where StatusQ = 4 ORDER BY EntryDatetime DESC"
+        "SELECT TOP 1 * FROM KMH_QUEUE Where PresStatus = 4 ORDER BY MWhen DESC"
       );
 
     res.json(result.recordset);
@@ -451,7 +449,7 @@ app.get("/api/queueTest2", async (req, res) => {
     const result = await pool
       .request()
       .query(
-        "SELECT TOP 1 * FROM QueueUse Where StatusQ = 2 ORDER BY EntryDatetime DESC"
+        "SELECT TOP 1 * FROM KMH_QUEUE Where PresStatus = 2 ORDER BY MWhen DESC"
       );
     res.json(result.recordset);
   } catch (error) {
@@ -465,7 +463,7 @@ app.get("/api/queueF", async (req, res) => {
     const result = await pool
       .request()
       .query(
-        "SELECT TOP 1 * FROM QueueUse Where StatusQ = 4 ORDER BY EntryDatetime DESC"
+        "SELECT TOP 1 * FROM KMH_QUEUE Where PresStatus = 4 ORDER BY MWhen DESC"
       );
 
     res.json(result.recordset);
@@ -480,7 +478,7 @@ app.get("/api/queueD", async (req, res) => {
     const result = await pool
       .request()
       .query(
-        "SELECT TOP 1 * FROM QueueUse Where StatusQ = 6 ORDER BY EntryDatetime DESC"
+        "SELECT TOP 1 * FROM KMH_QUEUE Where PresStatus = 6 ORDER BY MWhen DESC"
       );
 
     res.json(result.recordset);
@@ -537,6 +535,233 @@ app.get("/api/QKMH_Process", (req, res) => {
     clearInterval(interval);
   });
 });
+
+app.post("/api/update-room", async (req, res) => {
+  const { VisitNumber, Rooms, PresStatus } = req.body;
+
+  try {
+    // Connect to the database
+    let pool = await sql.connect(config);
+
+    // คำนวณเวลาใน TimeZone ของไทย
+    const thaiTime = moment.tz("Asia/Bangkok");
+    const EntryDatetime = thaiTime.format("YYYY-MM-DD HH:mm:ss");
+
+    // Update the queue
+    const updateQuery = `
+      UPDATE KMH_QUEUE 
+      SET PresStatus = @PresStatus, 
+          Rooms = @Rooms, 
+          MWhen = @MWhen 
+      WHERE VisitNumber = @VisitNumber
+    `;
+
+    const request = pool
+      .request()
+      .input("PresStatus", sql.VarChar, PresStatus)
+      .input("Rooms", sql.VarChar, Rooms)
+      .input("VisitNumber", sql.VarChar, VisitNumber)
+      .input("MWhen", sql.VarChar, EntryDatetime);
+
+    await request.query(updateQuery);
+
+    // Respond with a success message
+    res.json({ message: "Queue updated successfully" });
+  } catch (err) {
+    console.error("Error executing query:", err);
+    res.status(500).json({ error: "Database query error" });
+  }
+});
+app.post("/api/update_room_Finace", async (req, res) => {
+  const { VisitNumber, PresStatus } = req.body;
+
+  try {
+    // Connect to the database
+    let pool = await sql.connect(config);
+
+    // คำนวณเวลาใน TimeZone ของไทย
+    const thaiTime = moment.tz("Asia/Bangkok");
+    const EntryDatetime = thaiTime.format("YYYY-MM-DD HH:mm:ss");
+
+    // Update the queue
+    const updateQuery = `
+      UPDATE KMH_QUEUE 
+      SET PresStatus = @PresStatus, 
+          MWhen = @MWhen 
+      WHERE VisitNumber = @VisitNumber
+    `;
+
+    const request = pool
+      .request()
+      .input("PresStatus", sql.VarChar, PresStatus)
+      .input("VisitNumber", sql.VarChar, VisitNumber)
+      .input("MWhen", sql.VarChar, EntryDatetime);
+
+    await request.query(updateQuery);
+
+    // Respond with a success message
+    res.json({ message: "Queue updated successfully" });
+  } catch (err) {
+    console.error("Error executing query:", err);
+    res.status(500).json({ error: "Database query error" });
+  }
+});
+app.post("/api/updatecall", async (req, res) => {
+  const { VisitNumber, Station } = req.body;
+
+  try {
+    // Connect to the database
+    let pool = await sql.connect(config);
+    // คำนวณเวลาใน TimeZone ของไทย
+    const thaiTime = moment.tz("Asia/Bangkok");
+    const EntryDatetime = thaiTime.format("YYYY-MM-DD HH:mm:ss");
+
+    // Update the queue
+    const updateQuery = `
+      UPDATE KMH_QUEUE 
+      SET 
+          MWhen = @MWhen 
+      WHERE VisitNumber = @VisitNumber and Station = @Station
+    `;
+
+    const request = pool
+      .request()
+      .input("VisitNumber", sql.VarChar, VisitNumber)
+      .input("Station", sql.Int, Station)
+      .input("MWhen", sql.VarChar, EntryDatetime);
+
+    await request.query(updateQuery);
+
+    // Respond with a success message
+    res.json({ message: "Queue updated successfully" });
+  } catch (err) {
+    console.error("Error executing query:", err);
+    res.status(500).json({ error: "Database query error" });
+  }
+});
+app.post("/api/updatecallDrugaAndFinace", async (req, res) => {
+  const { VisitNumber, PresStatus } = req.body;
+  try {
+    // Connect to the database
+    let pool = await sql.connect(config);
+    // คำนวณเวลาใน TimeZone ของไทย
+    const thaiTime = moment.tz("Asia/Bangkok");
+    const EntryDatetime = thaiTime.format("YYYY-MM-DD HH:mm:ss");
+
+    // Update the queue
+    const updateQuery = `
+      UPDATE KMH_QUEUE 
+      SET 
+          MWhen = @MWhen 
+      WHERE VisitNumber = @VisitNumber and PresStatus = @PresStatus
+    `;
+
+    const request = pool
+      .request()
+      .input("VisitNumber", sql.VarChar, VisitNumber)
+      .input("PresStatus", sql.VarChar, PresStatus)
+      .input("MWhen", sql.VarChar, EntryDatetime);
+
+    await request.query(updateQuery);
+
+    // Respond with a success message
+    res.json({ message: "Queue updated successfully" });
+  } catch (err) {
+    console.error("Error executing query:", err);
+    res.status(500).json({ error: "Database query error" });
+  }
+});
+
+app.post("/api/updatebreak", async (req, res) => {
+  const { Station } = req.body;
+  try {
+    let pool = await sql.connect(config);
+    // คำนวณเวลาใน TimeZone ของไทย
+    const thaiTime = moment.tz("Asia/Bangkok");
+    const EntryDatetime = thaiTime.format("YYYY-MM-DD HH:mm:ss");
+    let PresStatus = "Waiting_to_pay";
+    // Update the queue
+    const updateQuery = `
+    UPDATE KMH_QUEUE 
+    SET PresStatus = @PresStatus ,
+        MWhen = @MWhen
+    WHERE Station = @Station AND PresStatus = 'Sent_to_doctor'
+    `;
+
+    const request = pool
+      .request()
+      .input("Station", sql.Int, Station)
+      .input("PresStatus", sql.VarChar, PresStatus)
+      .input("MWhen", sql.VarChar, EntryDatetime);
+
+    await request.query(updateQuery);
+
+    // Respond with a success message
+    res.json({ message: "Queue updated successfully" });
+  } catch (err) {
+    console.error("Error executing query:", err);
+    res.status(500).json({ error: "Database query error" });
+  }
+});
+app.post("/api/updatebreakFinace", async (req, res) => {
+  const { Station } = req.body;
+  try {
+    let pool = await sql.connect(config);
+    // คำนวณเวลาใน TimeZone ของไทย
+    const thaiTime = moment.tz("Asia/Bangkok");
+    const EntryDatetime = thaiTime.format("YYYY-MM-DD HH:mm:ss");
+    let PresStatus = "Waiting_to_pay";
+    // Update the queue
+    const updateQuery = `
+    UPDATE KMH_QUEUE 
+    SET PresStatus = @PresStatus ,
+        MWhen = @MWhen
+    WHERE Station = @Station AND PresStatus = 'Sent_to_doctor'
+    `;
+
+    const request = pool
+      .request()
+      .input("Station", sql.Int, Station)
+      .input("PresStatus", sql.VarChar, PresStatus)
+      .input("MWhen", sql.VarChar, EntryDatetime);
+
+    await request.query(updateQuery);
+
+    // Respond with a success message
+    res.json({ message: "Queue updated successfully" });
+  } catch (err) {
+    console.error("Error executing query:", err);
+    res.status(500).json({ error: "Database query error" });
+  }
+});
+app.get("/api/queue", async (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  const sendSSE = (data) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+  let interval;
+  // ส่งข้อมูลกลับไปยัง client ทุก 3 วินาที
+  interval = setInterval(async () => {
+    try {
+      // อ่านข้อมูลจากไฟล์ JSON ในเครือข่าย
+      const pool = await sql.connect(config);
+      const result = await pool.request().query("SELECT * FROM KMH_QUEUE");
+      const data = result.recordset;
+
+      sendSSE(data);
+    } catch (error) {
+      console.error("Error fetching data from JSON file:", error);
+    }
+  }, 1000);
+  // เมื่อ client ปิดการเชื่อมต่อ
+  res.on("close", () => {
+    clearInterval(interval);
+  });
+});
+
 app.listen(port, function () {
   console.log("Example app listening on port", port);
 });
